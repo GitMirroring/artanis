@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2014,2015,2017,2018
+;;  Copyright (C) 2014,2015,2017,2018,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -133,7 +133,7 @@
 (define-syntax-rule (cache-to-tlb! rc hash)
   (store-to-tlb! (rc-path rc) hash))
 
-(define (try-to-cache-dynamic-content rc body etag opts)
+(define (try-to-cache-dynamic-content rc body etag cache-opts headers)
   (define (->cc o)
     (match o
       ((#t)
@@ -145,10 +145,12 @@
       (('private . maxage)
        (let ((m (if (null? maxage) (get-conf '(cache maxage)) (car maxage))))
          `(private ,(cons 'max-age m))))
-      (else (throw 'artanis-err "->cc: Invalid opts!" o))))
+      (else (throw 'artanis-err try-to-cache-dynamic-content
+                   "Invalid opts `~a'!" o))))
   (cache-to-tlb! rc etag) ; cache the hash the TLB
-  (response-emit body #:headers `((ETag . ,etag)
-                                  (cache-control . ,(->cc opts)))))
+  (response-emit body #:headers `(,@headers
+                                  (ETag . ,etag)
+                                  (cache-control . ,(->cc cache-opts)))))
 
 (define (generate-ETag filename)
   (cond
@@ -177,7 +179,7 @@
          (lambda (e) (string=? (-> e) etag))))
 
 ;; ETag for dynamic content is content based
-(define (try-to-cache-body rc body . opts)
+(define* (try-to-cache-body rc body #:key (cache-opts '()) (headers '()))
   (define (gen-etag-for-dynamic-content)
     ;; NOTE: ETag must be around with double-quote explicitly!
     (string-concatenate (list "\"" (string->md5 body) "\"")))
@@ -191,7 +193,7 @@
     (let ((etag (get-proper-hash)))
       (if (If-None-Match-hit? rc etag)
           (emit-HTTP-304)
-          (try-to-cache-dynamic-content rc body etag opts))))
+          (try-to-cache-dynamic-content rc body etag headers cache-opts))))
    (else body)))
 
 (define-syntax-rule (emit-static-file-with-cache file out etag status max-age)
@@ -226,6 +228,6 @@
              ((? integer? m) m)
              (((? integer? m)) m)
              (() (get-conf '(cache maxage)))
-             (else (throw 'artanis-err ->maxage "Invalid maxage!" maxage)))))
+             (else (throw 'artanis-err ->maxage "Invalid maxage `~a'!" maxage)))))
     (DEBUG "Cache maxage is ~a~%" m)
     m))

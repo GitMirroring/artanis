@@ -173,29 +173,33 @@
 (define (cache-maker pattern rule keys)
   (define (non-cache rc body) body)
   (define-syntax-rule (try-public rc) (if (auth-enabled? rc) 'private 'public))
-  (match pattern
-    ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
-    (#f non-cache)
-    (('static maxage0 ...)
-     (lambda* (rc #:key (dir #f) (maxage (->maxage maxage0)))
-       (let ((filename (if dir
-                           (format #f "~a/~a" dir (rc-path rc))
-                           (static-filename (rc-path rc)))))
-         (try-to-cache-static-file rc (static-filename (rc-path rc))
-                                   (try-public rc) maxage))))
-    (((? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file (try-public rc) maxage)))
-    (('public (? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file (try-public rc) maxage)))
-    (('private (? string? file) maxage0 ...)
-     (lambda* (rc #:key (maxage (->maxage maxage0)))
-       (try-to-cache-static-file rc file 'private maxage)))
-    ((or (? boolean? opts) (? list? opts))
-     (lambda (rc body) (try-to-cache-body rc body opts)))
-    (else (throw 'artanis-err 500 cache-maker
-                 "Invalid pattern!" pattern))))
+  (rc-cache-handler!
+   rc
+   (match pattern
+     ;; disable cache explicitly, sometimes users want to make sure there's no any cache.
+     (#f non-cache)
+     (('static maxage0 ...)
+      (lambda* (rc _ #:key headers)
+        (let ((filename (static-filename (rc-path rc))))
+          (try-to-cache-static-file rc (static-filename (rc-path rc))
+                                    (try-public rc) (->maxage maxage)))))
+     (((? string? file) maxage0 ...)
+      (lambda* (rc _ #:key headers)
+        (try-to-cache-static-file rc file (try-public rc) (->maxage maxage))))
+     (('public (? string? file) maxage0 ...)
+      (lambda* (rc _ #:key headers)
+        (try-to-cache-static-file rc file (try-public rc) (->maxage maxage))))
+     (('private (? string? file) maxage0 ...)
+      (lambda* (rc _ #:key headers)
+        (try-to-cache-static-file rc file 'private (->maxage maxage))))
+     ((or (? boolean? opts) (? list? opts))
+      (lambda* (rc body #:key (headers '()))
+        (try-to-cache-body rc body #:opts opts #:headers headers)))
+     (else (throw 'artanis-err 500 cache-maker
+                  "Invalid pattern!" pattern)))
+   (lambda (rc . args)
+     (format (artanis-current-output)
+             "You don't have to call :cache explicitly!"))))
 
 ;; for #:cookies
 ;; NOTE: Support cookies customization, which let users define special cookies.

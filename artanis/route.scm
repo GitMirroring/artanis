@@ -47,6 +47,7 @@
             rc-oht rc-oht!
             rc-conn rc-conn!
             rc-lpc rc-lpc!
+            rc-cache-handler rc-cache-handler!
             new-route-context
             route-context?
 
@@ -94,6 +95,7 @@
   (set-cookie rc-set-cookie rc-set-cookie!) ; the cookies needed to be set as response
   ;; auto DB connection doesn't need users to close it, it's auto closed when request is over.
   (lpc rc-lpc rc-lpc!) ; store lpc object for later destruction
+  (cache-handler rc-cache-handler rc-cache-handler!) ; called before response
   (oht rc-oht rc-oht!) ; Option Handlers Table
   (conn rc-conn rc-conn!)) ; auto DB connection from pool
 
@@ -111,7 +113,7 @@
          (method (if (eq? m 'HEAD) 'GET m))
          (cookies (request-cookies request))
          (rc (make-route-context #f #f #f request path #f method #f #f
-                                 body #f cookies '() #f #f #f)))
+                                 body #f cookies '() #f #f #f #f)))
     ;; FIXME: maybe we don't need rhk? Throw it after get handler & keys
     (init-rule-handler-key! rc) ; set rule handler key
     (init-rule-handler-and-keys! rc) ; set handler and keys

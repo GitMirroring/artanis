@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018,2019
+;;  Copyright (C) 2016,2017,2018,2019,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -243,7 +243,7 @@
                        (DEBUG "Restore working client ~a~%" e)
                        client))))
                ((exists-in-epoll? (ragnarok-server-epfd server) (car e))
-                (DEBUG "The fd ~a in still in epoll but not task for it, just ignore!~%"
+                (DEBUG "The fd ~a in still in epoll but no task for it, just ignore!~%"
                        (car e))
                 (close (car e))
                 #f)

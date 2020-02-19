@@ -1,5 +1,5 @@
 ;;  -*-  indent-tabs-mode:nil; coding: utf-8 -*-
-;;  Copyright (C) 2016,2017,2018
+;;  Copyright (C) 2016,2017,2018,2020
 ;;      "Mu Lei" known as "NalaGinrut" <NalaGinrut@gmail.com>
 ;;  Artanis is free software: you can redistribute it and/or modify
 ;;  it under the terms of the GNU General Public License and GNU
@@ -204,10 +204,13 @@
                                    %null-pointer)))
     (lambda (ret errno)
       (cond
-       ((zero? ret) ret)
-       (check-exists?
+       ((and (= op EPOLL_CTL_ADD) check-exists?)
         (DEBUG "The event ~a exist and kept alive~%" fd)
-        (= ret EEXIST))
+        (let ((exist? (= ret EEXIST)))
+          (when (not exist?)
+            (epoll-ctl epfd EPOLL_CTL_DEL fd #f))
+          exist?))
+       ((zero? ret) ret)
        (else
         (throw 'artanis-err 500 epoll-ctl "~a: ~a"
                (list epfd op fd event (strerror errno))
@@ -215,10 +218,8 @@
 (export epoll-ctl)
 
 (define-public (exists-in-epoll? epfd fd)
-  (let* ((ees (make-epoll-event-set))
-         (ret (epoll-ctl epfd EPOLL_CTL_ADD fd ees #:check-exists? #t)))
-    (epoll-ctl epfd EPOLL_CTL_DEL fd #f)
-    ret))
+  (let* ((ees (make-epoll-event-set)))
+    (epoll-ctl epfd EPOLL_CTL_ADD fd ees #:check-exists? #t)))
 
 ;; NOTE: do NOT use this function outside this module!!!
 (define (epoll-event-set->list ees nfds)

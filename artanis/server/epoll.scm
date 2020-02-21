@@ -139,11 +139,12 @@
       (pump-epoll-guardian))))
 (add-hook! after-gc-hook pump-epoll-guardian)
 
-(define-public (make-epoll-event-set)
-  (let* ((max (get-conf '(server wqlen)))
+(define* (make-epoll-event-set #:optional (size #f))
+  (let* ((max (if size size (get-conf '(server wqlen))))
          (ees (make-bytevector (* max epoll-event-size))))
     (epoll-guardian ees)
     ees))
+(export make-epoll-event-set)
 
 ;; Creates an epoll instance.  Returns an fd for the new instance.
 ;; The "size" parameter is a hint specifying the number of file
@@ -205,9 +206,10 @@
     (lambda (ret errno)
       (cond
        ((and (= op EPOLL_CTL_ADD) check-exists?)
-        (DEBUG "The event ~a exist and kept alive~%" fd)
+        (DEBUG "Check if event ~a exists~%" fd)
         (let ((exist? (= ret EEXIST)))
           (when (not exist?)
+            (DEBUG "The event ~a doesn't exist~%" fd)
             (epoll-ctl epfd EPOLL_CTL_DEL fd #f))
           exist?))
        ((zero? ret) ret)
@@ -218,8 +220,13 @@
 (export epoll-ctl)
 
 (define-public (exists-in-epoll? epfd fd)
-  (let* ((ees (make-epoll-event-set)))
+  (let* ((ees (make-epoll-event-set 1)))
     (epoll-ctl epfd EPOLL_CTL_ADD fd ees #:check-exists? #t)))
+
+(define-public (remove-if-exists-in-epoll epfd fd)
+  (when (exists-in-epoll? epfd fd)
+    (DEBUG "The event ~a exist, we have to remove it~%" fd)
+    (epoll-ctl epfd EPOLL_CTL_DEL fd #f)))
 
 ;; NOTE: do NOT use this function outside this module!!!
 (define (epoll-event-set->list ees nfds)

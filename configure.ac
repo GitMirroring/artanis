@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ([2.65])
-AC_INIT([Artanis], 
-	m4_esyscmd([build-aux/git-version-gen .tarball-version]),
-	[bug-artanis@gnu.org])
+AC_INIT([Artanis],
+m4_esyscmd([build-aux/git-version-gen .tarball-version]),
+[bug-artanis@gnu.org])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR(.ARTANIS-VERSION)
@@ -19,7 +19,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 # Check for Guile
-GUILE_PKG(2.2 2.3 3.0)
+GUILE_PKG(3.0)
 GUILE_PROGS
 
 AC_CONFIG_FILES([Makefile bin/art])

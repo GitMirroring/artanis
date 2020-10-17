@@ -28,7 +28,7 @@ RUN set -ex \
         && make install && ldconfig && cd ../../ && rm -fr guile-dbi
 
 ARG CACHE_ARTANIS=1
-RUN     git clone --depth 1 git://git.savannah.gnu.org/artanis.git \
+RUN     git clone --depth 1 --single-branch guile3 git://git.savannah.gnu.org/artanis.git \
         && cd artanis \
 	&& ./autogen.sh \
 	&& ./configure \
